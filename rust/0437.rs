@@ -1,25 +1,43 @@
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::rc::Rc;
+
 impl Solution {
     pub fn path_sum(root: Option<Rc<RefCell<TreeNode>>>, target_sum: i32) -> i32 {
-        fn dfs(node: &Option<Rc<RefCell<TreeNode>>>, target_sum: i64) -> i32 {
-            if let Some(node) = node {
-                let node = node.borrow();
-                let tt = target_sum - node.val as i64;
-                let mut count = 0;
-                if node.val as i64 == target_sum {
-                    count += 1;
-                }
-                count += dfs(&node.left, tt);
-                count += dfs(&node.right, tt);
-                count
-            } else {
-                0
+        fn pre_order(
+            node: Option<Rc<RefCell<TreeNode>>>,
+            target_sum: i64,
+            current_sum: i64,
+            m: &mut HashMap<i64, i32>,
+            count: &mut i32,
+        ) {
+            if node.is_none() {
+                return;
             }
+            let node = node.unwrap();
+            let node_val = node.borrow().val as i64;
+            let new_sum = current_sum + node_val;
+
+            if new_sum == target_sum {
+                *count += 1;
+            }
+
+            if let Some(occur) = m.get(&(new_sum - target_sum)) {
+                *count += *occur;
+            }
+
+            *m.entry(new_sum).or_insert(0) += 1;
+
+            pre_order(node.borrow().left.clone(), target_sum, new_sum, m, count);
+            pre_order(node.borrow().right.clone(), target_sum, new_sum, m, count);
+
+            *m.get_mut(&new_sum).unwrap() -= 1;
         }
-        if let Some(root) = root {
-            let root_clone = Rc::clone(&root);
-            dfs(&Some(Rc::clone(&root_clone)), target_sum as i64) + Self::path_sum(Rc::clone(&root_clone).borrow().left.clone(), target_sum) + Self::path_sum(Rc::clone(&root_clone).borrow().right.clone(), target_sum)
-        } else {
-            0
-        }
+
+        let mut m = HashMap::new();
+        let mut count = 0;
+        pre_order(root, target_sum as i64, 0, &mut m, &mut count);
+
+        count
     }
 }
